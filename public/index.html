@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Voltage — Tech that earns its desk space</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <header class="site">
+    <div class="container bar">
+      <a class="logo" href="/">Volt<span>age</span><span class="dot">.</span></a>
+      <nav class="nav"></nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <h1>Gear that <em>earns</em> its place on your desk.</h1>
+      <p>A small, opinionated catalogue of audio, desk and power essentials. No clutter, no filler — just the things worth plugging in.</p>
+    </section>
+
+    <div class="controls">
+      <div class="search">
+        <input id="search" type="search" placeholder="Search the catalogue…" />
+      </div>
+      <div class="chips" id="chips"></div>
+    </div>
+
+    <div class="grid" id="grid"></div>
+  </main>
+
+  <footer class="site"><div class="container">Voltage — a CodeAlpha demo storefront. Built with Express &amp; vanilla JS.</div></footer>
+
+  <script src="/js/common.js"></script>
+  <script>
+    let activeCat = 'All';
+    let term = '';
+
+    async function loadCategories() {
+      const cats = await api('/api/categories');
+      document.getElementById('chips').innerHTML = cats.map(c =>
+        `<button class="chip ${c === activeCat ? 'active' : ''}" data-cat="${c}">${c}</button>`).join('');
+      document.querySelectorAll('.chip').forEach(b => b.onclick = () => {
+        activeCat = b.dataset.cat; loadCategories(); loadProducts();
+      });
+    }
+
+    async function loadProducts() {
+      const params = new URLSearchParams();
+      if (term) params.set('q', term);
+      if (activeCat !== 'All') params.set('category', activeCat);
+      const products = await api('/api/products?' + params);
+      const grid = document.getElementById('grid');
+      if (!products.length) { grid.innerHTML = '<div class="empty">No products match your search.</div>'; return; }
+      grid.innerHTML = products.map(p => `
+        <article class="card">
+          <a class="thumb" href="/product.html?id=${p.id}">${p.image}</a>
+          <div class="body">
+            <span class="cat">${p.category}</span>
+            <h3><a href="/product.html?id=${p.id}" style="color:inherit">${p.name}</a></h3>
+            <div class="price">${Money(p.price)}</div>
+            <button class="btn block" data-add="${p.id}">Add to cart</button>
+          </div>
+        </article>`).join('');
+      grid.querySelectorAll('[data-add]').forEach(b => b.onclick = () => {
+        Cart.add(b.dataset.add); toast('Added to cart');
+      });
+    }
+
+    let timer;
+    document.getElementById('search').addEventListener('input', e => {
+      term = e.target.value; clearTimeout(timer); timer = setTimeout(loadProducts, 200);
+    });
+
+    renderHeader('shop');
+    loadCategories();
+    loadProducts();
+  </script>
+</body>
+</html>

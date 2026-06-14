@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Product — Voltage</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <header class="site">
+    <div class="container bar">
+      <a class="logo" href="/">Volt<span>age</span><span class="dot">.</span></a>
+      <nav class="nav"></nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <p style="margin-top:20px"><a href="/">← Back to shop</a></p>
+    <div id="detail"></div>
+  </main>
+
+  <script src="/js/common.js"></script>
+  <script>
+    let qty = 1;
+    const id = new URLSearchParams(location.search).get('id');
+
+    async function load() {
+      let p;
+      try { p = await api('/api/products/' + id); }
+      catch { document.getElementById('detail').innerHTML = '<div class="empty">Product not found.</div>'; return; }
+
+      const inStock = p.stock > 0;
+      document.title = p.name + ' — Voltage';
+      document.getElementById('detail').innerHTML = `
+        <div class="detail">
+          <div class="photo">${p.image}</div>
+          <div>
+            <span class="badge">${p.category}</span>
+            <h1>${p.name}</h1>
+            <div class="price">${Money(p.price)}</div>
+            <p class="stock ${inStock ? 'in' : 'out'}">${inStock ? '● In stock — ' + p.stock + ' available' : '● Out of stock'}</p>
+            <p class="desc">${p.description}</p>
+            <div style="display:flex; gap:14px; align-items:center; margin-top:22px; flex-wrap:wrap">
+              <div class="qty">
+                <button id="minus">−</button><span id="q">1</span><button id="plus">+</button>
+              </div>
+              <button class="btn" id="add" ${inStock ? '' : 'disabled'}>Add to cart</button>
+              <button class="btn accent" id="buy" ${inStock ? '' : 'disabled'}>Buy now</button>
+            </div>
+          </div>
+        </div>`;
+
+      document.getElementById('minus').onclick = () => { qty = Math.max(1, qty - 1); document.getElementById('q').textContent = qty; };
+      document.getElementById('plus').onclick = () => { qty = Math.min(p.stock, qty + 1); document.getElementById('q').textContent = qty; };
+      document.getElementById('add').onclick = () => { Cart.add(p.id, qty); toast('Added ' + qty + ' to cart'); };
+      document.getElementById('buy').onclick = () => { Cart.add(p.id, qty); location.href = '/cart.html'; };
+    }
+
+    renderHeader('shop');
+    load();
+  </script>
+</body>
+</html>

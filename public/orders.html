@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Your orders — Voltage</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <header class="site">
+    <div class="container bar">
+      <a class="logo" href="/">Volt<span>age</span><span class="dot">.</span></a>
+      <nav class="nav"></nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <h2 class="page">Your orders</h2>
+    <div id="placed"></div>
+    <div id="orders"></div>
+  </main>
+
+  <script src="/js/common.js"></script>
+  <script>
+    const justPlaced = new URLSearchParams(location.search).get('placed');
+
+    async function load() {
+      const user = await currentUser();
+      if (!user) { location.href = '/login.html?next=/orders.html'; return; }
+
+      if (justPlaced) {
+        document.getElementById('placed').innerHTML =
+          `<div class="panel" style="border-color:var(--ok); margin-bottom:18px">
+             ✅ <strong>Order ${justPlaced} confirmed.</strong> Thanks for shopping with Voltage — your gear is on its way.
+           </div>`;
+      }
+
+      let orders;
+      try { orders = await api('/api/orders'); } catch { return; }
+      const el = document.getElementById('orders');
+      if (!orders.length) { el.innerHTML = '<div class="empty">No orders yet.<br><br><a class="btn" href="/">Start shopping</a></div>'; return; }
+
+      el.innerHTML = orders.map(o => `
+        <div class="panel" style="margin-bottom:16px">
+          <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px">
+            <div><strong>${o.id}</strong> <span class="badge">${o.status}</span></div>
+            <div class="muted">${new Date(o.placedAt).toLocaleString('en-IN')}</div>
+          </div>
+          <div style="margin:12px 0">
+            ${o.items.map(i => `<div class="line" style="grid-template-columns:1fr auto auto">
+                <div>${i.name}</div><div class="muted">× ${i.qty}</div><div style="font-weight:600">${Money(i.price * i.qty)}</div>
+              </div>`).join('')}
+          </div>
+          <div class="summary"><span></span><div class="total">${Money(o.total)}</div></div>
+        </div>`).join('');
+    }
+    renderHeader('orders');
+    load();
+  </script>
+</body>
+</html>

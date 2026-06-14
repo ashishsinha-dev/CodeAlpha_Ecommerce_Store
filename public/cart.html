@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Your cart — Voltage</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <header class="site">
+    <div class="container bar">
+      <a class="logo" href="/">Volt<span>age</span><span class="dot">.</span></a>
+      <nav class="nav"></nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <h2 class="page">Your cart</h2>
+    <div id="cartArea"></div>
+  </main>
+
+  <script src="/js/common.js"></script>
+  <script>
+    async function render() {
+      const items = Cart.get();
+      const area = document.getElementById('cartArea');
+      if (!items.length) {
+        area.innerHTML = '<div class="empty">Your cart is empty.<br><br><a class="btn" href="/">Browse the shop</a></div>';
+        return;
+      }
+      // hydrate with product info
+      const products = await Promise.all(items.map(i => api('/api/products/' + i.id)));
+      const rows = products.map((p, idx) => {
+        const qty = items[idx].qty;
+        return `<div class="line">
+          <div class="ic">${p.image}</div>
+          <div><strong>${p.name}</strong><div class="muted price-each">${Money(p.price)} each</div></div>
+          <div class="qty">
+            <button data-dec="${p.id}">−</button><span>${qty}</span><button data-inc="${p.id}" data-stock="${p.stock}">+</button>
+          </div>
+          <div style="font-weight:700">${Money(p.price * qty)}</div>
+          <button class="rm" data-rm="${p.id}">Remove</button>
+        </div>`;
+      }).join('');
+      const total = products.reduce((s, p, idx) => s + p.price * items[idx].qty, 0);
+
+      area.innerHTML = `<div class="panel">${rows}
+        <div class="summary">
+          <a href="/" class="muted">← Continue shopping</a>
+          <div style="text-align:right">
+            <div class="muted">Order total</div>
+            <div class="total">${Money(total)}</div>
+          </div>
+        </div>
+        <div style="margin-top:18px; text-align:right">
+          <button class="btn" id="checkout">Place order</button>
+        </div>
+      </div>
+      <p id="msg" class="muted" style="margin-top:14px"></p>`;
+
+      area.querySelectorAll('[data-inc]').forEach(b => b.onclick = () => {
+        const cur = items.find(i => i.id === b.dataset.inc).qty;
+        Cart.setQty(b.dataset.inc, Math.min(+b.dataset.stock, cur + 1)); render();
+      });
+      area.querySelectorAll('[data-dec]').forEach(b => b.onclick = () => {
+        const cur = items.find(i => i.id === b.dataset.dec).qty;
+        Cart.setQty(b.dataset.dec, cur - 1); render();
+      });
+      area.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { Cart.remove(b.dataset.rm); render(); });
+      document.getElementById('checkout').onclick = checkout;
+    }
+
+    async function checkout() {
+      const user = await currentUser();
+      if (!user) { toast('Please log in to check out', true); setTimeout(() => location.href = '/login.html?next=/cart.html', 800); return; }
+      try {
+        const order = await api('/api/orders', { method: 'POST', body: { items: Cart.get() } });
+        Cart.clear();
+        location.href = '/orders.html?placed=' + order.id;
+      } catch (e) {
+        document.getElementById('msg').textContent = e.message;
+        toast(e.message, true);
+      }
+    }
+
+    renderHeader('cart');
+    render();
+  </script>
+</body>
+</html>

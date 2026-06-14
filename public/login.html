@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Log in — Voltage</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <header class="site">
+    <div class="container bar">
+      <a class="logo" href="/">Volt<span>age</span><span class="dot">.</span></a>
+      <nav class="nav"></nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="auth-wrap">
+      <div class="panel">
+        <h2 class="page" style="margin-top:0">Welcome back</h2>
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" type="email" placeholder="you@example.com" />
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" type="password" placeholder="••••••••" />
+        </div>
+        <button class="btn block" id="submit">Log in</button>
+        <p id="msg" style="color:var(--danger); margin:14px 0 0; font-weight:500"></p>
+        <p class="center muted" style="margin-top:18px">New here? <a href="/register.html">Create an account</a></p>
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/common.js"></script>
+  <script>
+    const next = new URLSearchParams(location.search).get('next') || '/';
+    async function submit() {
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      try {
+        await api('/api/auth/login', { method: 'POST', body: { email, password } });
+        location.href = next;
+      } catch (e) { document.getElementById('msg').textContent = e.message; }
+    }
+    document.getElementById('submit').onclick = submit;
+    document.getElementById('password').addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+    renderHeader();
+  </script>
+</body>
+</html>
